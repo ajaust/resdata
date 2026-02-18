@@ -12,6 +12,9 @@ class ResdataConan(ConanFile):
         self.requires("catch2/2.13.9")
         self.requires("fmt/8.0.1")
 
+    def package_info(self):
+        self.conf_info.define("tools.build:verbosity", "debug")
+
     def configure(self):
         self.options["catch2"].with_main = True
         if self.settings.os == "Macos":
