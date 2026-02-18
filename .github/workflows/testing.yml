@@ -34,13 +34,19 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v6
       with:
-        python-version: 3.14 
+        python-version: 3.14
         cache: 'pip'
 
     - name: Install Conan
       uses: conan-io/setup-conan@v1
       with:
         cache_packages: true
+
+    - name: Update conan profile
+      if: runner.os != 'Windows'
+      run: |
+        echo -e '\n[replace_tool_requires]\nm4/*: m4/1.4.20' >> default
+        cat default
 
     - name: Install dependencies
       shell: bash
