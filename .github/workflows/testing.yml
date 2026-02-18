@@ -1,12 +1,14 @@
 name: testing
 
 on:
- push:
-   branches:
-     - main
-     - 'version-**'
-   tags: ["*"]
- pull_request:
+  push:
+    branches:
+      - main
+      - 'version-**'
+    tags: ["*"]
+  pull_request:
+  workflow_dispatch:
+
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
