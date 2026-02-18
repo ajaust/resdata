@@ -45,7 +45,7 @@ jobs:
     - name: Update conan profile
       if: runner.os != 'Windows'
       run: |
-        echo -e '\n[replace_tool_requires]\nm4/*: m4/1.4.20' >> default
+        echo -e '\n[replace_tool_requires]\nm4/*: m4/1.4.20' >> /home/runner/.conan2/profiles/default
         cat default
 
     - name: Install dependencies

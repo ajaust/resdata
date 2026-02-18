@@ -44,7 +44,7 @@ def run_conan_install():
         [conan_exe, "profile", "detect", "--force"],
         check=False,  # Ignore if profile already exists
     )
-    with open("default", "a") as f:
+    with open("/root/.conan2/profiles/default", "a") as f:
         f.write("\n[replace_tool_requires]\nm4/*: m4/1.4.20")
 
     skbuild_dir = get_skbuild_dir()
