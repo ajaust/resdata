@@ -96,9 +96,17 @@ jobs:
         python-version: ${{ matrix.python[0] }}
 
     - name: Build wheels
+      id: buildWheels
+      continue-on-error: true
       uses: pypa/cibuildwheel@v3.3.1
       with:
         extras: "uv"
+
+    - name: Check m4 and gettext version
+      if: steps.buildWheels.outcome == 'failure'
+      run: |
+        /root/.conan2/p/m4d0f4255d67ce6/p/bin/m4 --version
+        /root/.conan2/p/b/gettedbce3b2d04dd9/p/bin/autopoint --version
 
     - name: Upload wheels
       uses: actions/upload-artifact@v6
