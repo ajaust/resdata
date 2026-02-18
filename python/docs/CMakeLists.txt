@@ -40,7 +40,7 @@ install(DIRECTORY ${doc_build}/html
 # even in situatons where pdflatex is found and works ok; in this case the
 # PDFLATEX_COMPILER variable is set and the pdf generation seems to work as
 # expected.
-find_package(LATEX COMPONENTS pdflatex)
+find_package(LATEX COMPONENTS pdflatex QUIET)
 if(PDFLATEX_COMPILER)
   set(latex_workdir "${doc_build}/latex")
 
