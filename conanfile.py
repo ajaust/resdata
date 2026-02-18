@@ -5,6 +5,8 @@ class ResdataConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeDeps", "CMakeToolchain"
 
+    tool_requires = "m4/1.4.20"
+
     def requirements(self):
         self.requires("backward-cpp/1.6")
         self.requires("catch2/2.13.9")
