@@ -44,9 +44,14 @@ def run_conan_install():
         [conan_exe, "profile", "detect", "--force"],
         check=False,  # Ignore if profile already exists
     )
-    with open("/root/.conan2/profiles/default", "a") as f:
-        f.write("\n[requires]\nm4/*: m4/1.4.20")
-        f.write("\n[replace_tool_requires]\nm4/*: m4/1.4.20")
+
+    try:
+        with open("/root/.conan2/profiles/default", "a") as f:
+            f.write("\n[tool_requires]\nm4/*: m4/1.4.20")
+            f.write("\n[replace_requires]\nm4/*: m4/1.4.20")
+            f.write("\n[replace_tool_requires]\nm4/*: m4/1.4.20")
+    except FileNotFoundError:
+        pass  # Profile file may not exist in this path, e.g., on Windows or MacOS
 
     skbuild_dir = get_skbuild_dir()
     os.makedirs(skbuild_dir, exist_ok=True)

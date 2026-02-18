@@ -45,7 +45,7 @@ jobs:
     - name: Update conan profile
       if: runner.os != 'Linux'
       run: |
-        echo -e '\n[requires]\nm4/*: m4/1.4.20\n' >> /home/runner/.conan2/profiles/default
+        echo -e '\n[tool_requires]\nm4/*: m4/1.4.20\n' >> /home/runner/.conan2/profiles/default
         echo -e '\n[replace_tool_requires]\nm4/*: m4/1.4.20\n' >> /home/runner/.conan2/profiles/default
         cat default
 
