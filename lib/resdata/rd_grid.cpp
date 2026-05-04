@@ -12,6 +12,10 @@
 #include <string>
 #include <optional>
 #include <array>
+#include <stdexcept>
+#include <limits>
+
+#include <fmt/format.h>
 
 #include <ert/util/util.hpp>
 #include <ert/util/double_vector.hpp>
@@ -5161,10 +5165,10 @@ void rd_grid_reset_actnum(rd_grid_type *grid, const int *actnum) {
 }
 
 static void rd_grid_fwrite_self_nnc(const rd_grid_type *grid,
-                                    fortio_type *fortio) {
+                                    const ERT::FortIO &fortio) {
     const int default_index = 1;
-    int_vector_type *g1 = int_vector_alloc(0, default_index);
-    int_vector_type *g2 = int_vector_alloc(0, default_index);
+    std::vector<int> g1(0, default_index);
+    std::vector<int> g2(0, default_index);
     for (int g = 0; g < rd_grid_get_global_size(grid); g++) {
         const rd_cell_type &cell = grid->cells.at(g);
         auto &nnc_info = cell.nnc_info;
@@ -5173,38 +5177,50 @@ static void rd_grid_fwrite_self_nnc(const rd_grid_type *grid,
                 nnc_info_get_self_vector(nnc_info.get());
             if (!nnc_vector)
                 continue;
-            int i;
-            for (i = 0; i < nnc_vector_get_size(nnc_vector); i++) {
+            for (int i = 0; i < nnc_vector_get_size(nnc_vector); i++) {
                 int nnc_index = nnc_vector_iget_nnc_index(nnc_vector, i);
-                int_vector_iset(g1, nnc_index, 1 + g);
-                int_vector_iset(g2, nnc_index,
-                                1 + nnc_vector_iget_grid_index(nnc_vector, i));
+                if (nnc_index < 0)
+                    throw std::domain_error(
+                        "rd_grid_fwrite_self_nnc: negative nnc_index");
+
+                size_t u_nnc_index = static_cast<size_t>(nnc_index);
+
+                if (u_nnc_index >= g1.size()) {
+                    g1.resize(u_nnc_index + 1, default_index);
+                    g2.resize(u_nnc_index + 1, default_index);
+                }
+                g1[nnc_index] = 1 + g;
+                g2[nnc_index] = 1 + nnc_vector_iget_grid_index(nnc_vector, i);
             }
         }
     }
-    {
-        int num_nnc = int_vector_size(g1);
-        rd_kw_type *nnc1_kw = rd_kw_alloc_new_shared(NNC1_KW, num_nnc, RD_INT,
-                                                     int_vector_get_ptr(g1));
-        rd_kw_type *nnc2_kw = rd_kw_alloc_new_shared(NNC2_KW, num_nnc, RD_INT,
-                                                     int_vector_get_ptr(g2));
-        rd_kw_type *nnchead_kw = rd_kw_alloc(NNCHEAD_KW, NNCHEAD_SIZE, RD_INT);
+    int num_nnc = 0;
+    if (g1.size() > static_cast<size_t>(std::numeric_limits<int>::max()))
+        throw std::overflow_error(
+            "rd_grid_fwrite_self_nnc: NNC count exceeds INT_MAX");
+    num_nnc = static_cast<int>(g1.size());
 
-        rd_kw_scalar_set_int(nnchead_kw, 0);
-        rd_kw_iset_int(nnchead_kw, NNCHEAD_NUMNNC_INDEX, num_nnc);
-        rd_kw_iset_int(nnchead_kw, NNCHEAD_LGR_INDEX, grid->lgr_nr);
-
-        rd_kw_fwrite(nnchead_kw, fortio);
-        rd_kw_fwrite(nnc1_kw, fortio);
-        rd_kw_fwrite(nnc2_kw, fortio);
-
-        rd_kw_free(nnchead_kw);
-        rd_kw_free(nnc2_kw);
-        rd_kw_free(nnc1_kw);
+    // ensure that g1.data() != nullptr
+    if (g1.empty()) {
+        g1.resize(1, default_index);
+        g2.resize(1, default_index);
     }
 
-    int_vector_free(g1);
-    int_vector_free(g2);
+    auto nnc1_kw =
+        rd_kw_ptr(rd_kw_alloc_new_shared(NNC1_KW, num_nnc, RD_INT, g1.data()),
+                  &rd_kw_free);
+    auto nnc2_kw =
+        rd_kw_ptr(rd_kw_alloc_new_shared(NNC2_KW, num_nnc, RD_INT, g2.data()),
+                  &rd_kw_free);
+    auto nnchead_kw = make_rd_kw(NNCHEAD_KW, NNCHEAD_SIZE, RD_INT);
+
+    rd_kw_scalar_set_int(nnchead_kw.get(), 0);
+    rd_kw_iset_int(nnchead_kw.get(), NNCHEAD_NUMNNC_INDEX, num_nnc);
+    rd_kw_iset_int(nnchead_kw.get(), NNCHEAD_LGR_INDEX, grid->lgr_nr);
+
+    rd_kw_fwrite(nnchead_kw.get(), fortio.get());
+    rd_kw_fwrite(nnc1_kw.get(), fortio.get());
+    rd_kw_fwrite(nnc2_kw.get(), fortio.get());
 }
 
 static void rd_grid_fwrite_EGRID__(rd_grid_type *grid, ERT::FortIO &fortio,
@@ -5280,7 +5296,7 @@ static void rd_grid_fwrite_EGRID__(rd_grid_type *grid, ERT::FortIO &fortio,
         auto endlgr_kw = make_rd_kw(ENDLGR_KW, 0, RD_INT);
         rd_kw_fwrite(endlgr_kw.get(), fortio.get());
     }
-    rd_grid_fwrite_self_nnc(grid, fortio.get());
+    rd_grid_fwrite_self_nnc(grid, fortio);
 }
 
 void rd_grid_fwrite_EGRID2(rd_grid_type *grid, const char *filename,
