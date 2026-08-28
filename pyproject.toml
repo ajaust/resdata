@@ -147,7 +147,7 @@ test-command = "pytest {package}/tests"
 before-build = "if exist {package}\\build rmdir /s /q {package}\\build"
 repair-wheel-command = """
 delvewheel repair \
-  --add-path "{package}/build/bin" \
+  --add-path "{package}/build/bin/Release" \
   -w {dest_dir} -v {wheel}
 """
 test-command = "python -c \"import resdata.grid\""
