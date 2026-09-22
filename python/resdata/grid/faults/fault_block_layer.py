@@ -1,6 +1,5 @@
-from cwrap import BaseCClass
-
 import resdata.grid.faults._fault_block_layer as _fault_block_layer
+from resdata._base_c_class import _BaseCClass
 from resdata.resfile import ResdataKW
 
 from .fault import Fault
@@ -8,12 +7,12 @@ from .fault_block import FaultBlock
 from .layer import Layer
 
 
-class FaultBlockLayer(BaseCClass):
+class FaultBlockLayer(_BaseCClass):
     TYPE_NAME = "rd_fault_block_layer"
 
     def __init__(self, grid, k):
         c_ptr = _fault_block_layer._alloc(grid, k)
-        if c_ptr:
+        if c_ptr is not None:
             super().__init__(c_ptr)
         else:
             raise ValueError("Invalid input - failed to create FaultBlockLayer")

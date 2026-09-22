@@ -18,15 +18,15 @@ from typing import Any, SupportsFloat, SupportsInt
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from cwrap import BaseCClass
 
 import resdata.grid._grid as _grid
 from resdata import ResDataType, UnitSystem
+from resdata._base_c_class import _BaseCClass
 from resdata.grid import Cell
 from resdata.resfile import FortIO, ResdataKW
 
 
-class Grid(BaseCClass):
+class Grid(_BaseCClass):
     """
     Class for loading and internalizing GRID/EGRID files.
     """
@@ -89,12 +89,12 @@ class Grid(BaseCClass):
 
     @classmethod
     def _python_object_from_ptr(cls, ptr):
-        if not ptr:
+        if ptr is None:
             return None
         return cls.createPythonObject(ptr)
 
     def _reference_from_ptr(self, ptr):
-        if not ptr:
+        if ptr is None:
             return None
         return self.createCReference(ptr, parent=self)
 
@@ -129,7 +129,7 @@ class Grid(BaseCClass):
         Will create a grid structure from an EGRID or GRID file.
         """
         c_ptr = _grid._fread_alloc(filename, apply_mapaxes)
-        if c_ptr:
+        if c_ptr is not None:
             super().__init__(c_ptr)
         else:
             raise OSError("Loading grid from:%s failed" % filename)

@@ -18,16 +18,11 @@ from typing import Iterable, Sequence, SupportsFloat
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-
-# Observe that there is some convention conflict with the C code
-# regarding order of arguments: The C code generally takes the time
-# index as the first argument and the key/key_index as second
-# argument. In the python code this order has been reversed.
-from cwrap import BaseCClass
 from dateutil.relativedelta import relativedelta
 
 import resdata.summary._rd_sum as _rd_sum
 from resdata import FileMode, UnitSystem
+from resdata._base_c_class import _BaseCClass
 from resdata.util.util import CTime, TimeLike
 
 from .rd_smspec_node import ResdataSMSPECNode
@@ -36,17 +31,17 @@ from .rd_sum_var_type import SummaryVarType
 from .rd_sum_vector import SummaryVector
 
 
-class Summary(BaseCClass):
+class Summary(_BaseCClass):
     TYPE_NAME = "rd_sum"
 
     @classmethod
     def _python_object_from_ptr(cls, ptr):
-        if not ptr:
+        if ptr is None:
             return None
         return cls.createPythonObject(ptr)
 
     def _reference_from_ptr(self, ptr):
-        if not ptr:
+        if ptr is None:
             return None
         return self.createCReference(ptr, parent=self)
 
@@ -89,7 +84,7 @@ class Summary(BaseCClass):
         c_pointer = _rd_sum._fread_alloc_case(
             load_case, join_string, include_restart, lazy_load, file_options
         )
-        if not c_pointer:
+        if c_pointer is None:
             raise OSError(
                 "Failed to create summary instance from argument:%s" % load_case
             )
@@ -113,7 +108,7 @@ class Summary(BaseCClass):
             False,
             FileMode.DEFAULT,
         )
-        if not c_ptr:
+        if c_ptr is None:
             raise OSError("Failed to create summary instance")
 
         rd_sum = cls.createPythonObject(c_ptr)
@@ -986,7 +981,7 @@ class Summary(BaseCClass):
     @property
     def restart_case(self):
         ptr = _rd_sum._get_restart_case(self)
-        if not ptr:
+        if ptr is None:
             return None
         return Summary.createCReference(ptr, parent=self)
 

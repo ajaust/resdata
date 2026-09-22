@@ -1,17 +1,16 @@
-from cwrap import BaseCClass
-
 import resdata.geometry._geo_region as _geo_region
+from resdata._base_c_class import _BaseCClass
 
 from .cpolyline import CPolyline
 
 
-class GeoRegion(BaseCClass):
+class GeoRegion(_BaseCClass):
     TYPE_NAME = "rd_geo_region"
 
     def __init__(self, pointset, preselect=False):
         self._preselect = True if preselect else False
         c_ptr = _geo_region._alloc(pointset, self._preselect)
-        if c_ptr:
+        if c_ptr is not None:
             super().__init__(c_ptr)
             # The C geo_region only borrows the pointset, so we must keep a
             # reference to it (and, transitively, whatever owns its memory)

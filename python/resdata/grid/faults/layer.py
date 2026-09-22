@@ -1,17 +1,16 @@
 from typing import SupportsInt
 
-from cwrap import BaseCClass
-
 import resdata.grid.faults._layer as _layer
+from resdata._base_c_class import _BaseCClass
 from resdata.grid import Grid
 
 
-class Layer(BaseCClass):
+class Layer(_BaseCClass):
     TYPE_NAME = "rd_layer"
 
     def __init__(self, nx, ny):
         c_ptr = _layer._alloc(nx, ny)
-        if c_ptr:
+        if c_ptr is not None:
             super().__init__(c_ptr)
         else:
             raise ValueError("Invalid input - no Layer object created")
