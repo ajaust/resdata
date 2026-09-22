@@ -84,6 +84,9 @@ jobs:
         os: ['ubuntu-latest', 'ubuntu-24.04-arm', 'macos-latest', 'windows-2022']
 
     runs-on: ${{ matrix.os }}
+    # Guard against a wedged test hanging for the default 6h job timeout;
+    # build+test normally completes in well under 30 minutes.
+    timeout-minutes: 60
 
     steps:
     - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
