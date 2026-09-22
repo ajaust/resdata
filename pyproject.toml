@@ -132,13 +132,15 @@ skip = "*-musllinux_* *-win32"
 before-all = "yum install -y zlib-devel"
 before-build = "rm -rf {package}/build"
 test-groups = ["test"]
-test-command = "pytest {package}/tests"
+test-command = "pytest --timeout=120 --timeout-method=thread {package}/tests"
+environment = { RD_SKIP_SIGNAL = "1", ERT_SHOW_BACKTRACE = "1" }
 
 [tool.cibuildwheel.macos]
 before-all = "brew install zlib"
 before-build = "rm -rf {package}/build"
 test-groups = ["test"]
-test-command = "pytest {package}/tests"
+test-command = "pytest --timeout=120 --timeout-method=thread {package}/tests"
+environment = { RD_SKIP_SIGNAL = "1", ERT_SHOW_BACKTRACE = "1" }
 
 [tool.cibuildwheel.windows]
 before-build = "if exist {package}\\build rmdir /s /q {package}\\build"
