@@ -49,8 +49,20 @@ jobs:
 
     - name: Install Conan
       uses: conan-io/setup-conan@ed3942a6883243f4af84e13e49c972f9440fa1c2 # v1.4.0
+      # Caching is handled explicitly below: setup-conan's own cache_packages
+      # option keys its cache only on the Conan version and runner.os (e.g.
+      # "conan-2.32.0-Linux"), which collides between ubuntu-latest (x86_64)
+      # and ubuntu-24.04-arm (aarch64). Since GitHub Actions cache entries are
+      # immutable per key, whichever job saves first "wins" and the other
+      # architecture's packages are never actually cached.
+
+    - name: Cache Conan packages
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        cache_packages: true
+        path: ~/.conan2
+        key: conan-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('conanfile.py') }}
+        restore-keys: |
+          conan-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-
 
     - name: Install dependencies
       shell: bash
