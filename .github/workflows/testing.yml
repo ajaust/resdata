@@ -75,6 +75,16 @@ jobs:
         mkdir cmake-build
         conan install . --output-folder=cmake-build --build=missing -o build_tests=True
 
+    - name: Fix Conan cache permissions
+      if: runner.os == 'Linux'
+      shell: bash
+      # Some Conan recipes (e.g. libiconv) ship test fixture files with no
+      # read permission on purpose, to exercise error handling. We own these
+      # files but can't read them, so the cache-save step's tar invocation
+      # later fails with "Permission denied" and silently skips saving the
+      # cache. We own the files, so chmod works even though read doesn't.
+      run: chmod -R u+rX ~/.conan2
+
     - name: Build
       run: |
         cmake --preset conan-release -DENABLE_ASAN=ON -DENABLE_UBSAN=ON -DRST_DOC=ON
@@ -124,6 +134,16 @@ jobs:
       uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55 # v4.1.0
       with:
         extras: "uv"
+
+    - name: Fix Conan cache permissions
+      if: runner.os == 'Linux'
+      shell: bash
+      # Some Conan recipes (e.g. libiconv) ship test fixture files with no
+      # read permission on purpose, to exercise error handling. We own these
+      # files but can't read them, so the cache-save step's tar invocation
+      # later fails with "Permission denied" and silently skips saving the
+      # cache. We own the files, so chmod works even though read doesn't.
+      run: chmod -R u+rX ~/.conan2
 
     - name: Upload wheels
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
