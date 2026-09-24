@@ -133,7 +133,12 @@ before-all = "yum install -y zlib-devel"
 before-build = "rm -rf {package}/build"
 test-groups = ["test"]
 test-command = "pytest --timeout=120 --timeout-method=thread {package}/tests"
-environment = { RD_SKIP_SIGNAL = "1", ERT_SHOW_BACKTRACE = "1" }
+# cibuildwheel mounts the whole host filesystem at /host inside the manylinux
+# container. Point CONAN_HOME at the host's own ~/.conan2 (GitHub-hosted
+# Linux runners always use /home/runner as HOME) so the Conan package cache
+# is the same directory the "Cache Conan packages" workflow step caches,
+# instead of an ephemeral path inside the throwaway container.
+environment = { RD_SKIP_SIGNAL = "1", ERT_SHOW_BACKTRACE = "1", CONAN_HOME = "/host/home/runner/.conan2" }
 
 [tool.cibuildwheel.macos]
 before-all = "brew install zlib"

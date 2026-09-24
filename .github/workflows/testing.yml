@@ -108,6 +108,18 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
 
+    - name: Cache Conan packages
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        # On Linux, cibuildwheel builds inside a manylinux container. It
+        # mounts the whole host filesystem at /host, and CONAN_HOME is
+        # pointed there (see pyproject.toml) so this same host-side path is
+        # what's actually used and cached for every platform.
+        path: ~/.conan2
+        key: conan-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('conanfile.py') }}
+        restore-keys: |
+          conan-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-
+
     - name: Build wheels
       uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55 # v4.1.0
       with:
