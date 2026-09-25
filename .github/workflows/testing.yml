@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-latest', 'macos-latest']
+        os: ['ubuntu-latest', 'macos-latest', 'ubuntu-24.04-arm']
 
     runs-on: ${{ matrix.os }}
 
@@ -49,8 +49,20 @@ jobs:
 
     - name: Install Conan
       uses: conan-io/setup-conan@ed3942a6883243f4af84e13e49c972f9440fa1c2 # v1.4.0
+      # Caching is handled explicitly below: setup-conan's own cache_packages
+      # option keys its cache only on the Conan version and runner.os (e.g.
+      # "conan-2.32.0-Linux"), which collides between ubuntu-latest (x86_64)
+      # and ubuntu-24.04-arm (aarch64). Since GitHub Actions cache entries are
+      # immutable per key, whichever job saves first "wins" and the other
+      # architecture's packages are never actually cached.
+
+    - name: Cache Conan packages
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        cache_packages: true
+        path: ~/.conan2
+        key: conan-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('conanfile.py') }}
+        restore-keys: |
+          conan-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-
 
     - name: Install dependencies
       shell: bash
@@ -62,6 +74,24 @@ jobs:
         echo "$(pwd)/.venv/bin" >> "$GITHUB_PATH"
         mkdir cmake-build
         conan install . --output-folder=cmake-build --build=missing -o build_tests=True
+
+    - name: Fix Conan cache permissions
+      if: runner.os == 'Linux'
+      shell: bash
+      # Some Conan recipes (e.g. libiconv) ship test fixture files with no
+      # read permission on purpose, to exercise error handling, which
+      # otherwise makes the cache-save step's tar invocation fail with
+      # "Permission denied" and silently skip saving the cache. On the
+      # build-test-wheel job, cibuildwheel additionally runs Conan inside a
+      # root-owned manylinux container, so files under the host-mounted
+      # CONAN_HOME can end up owned by root instead of by this job's user,
+      # which chmod alone cannot fix ("Operation not permitted"). Runners
+      # have passwordless sudo, so reclaim ownership before fixing
+      # permissions; this is a no-op on build-test-cmake, where Conan
+      # already runs as this job's user.
+      run: |
+        sudo chown -R "$(id -u):$(id -g)" ~/.conan2
+        chmod -R u+rX ~/.conan2
 
     - name: Build
       run: |
@@ -81,9 +111,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-latest', 'macos-latest', 'windows-2022']
+        os: ['ubuntu-latest', 'ubuntu-24.04-arm', 'macos-latest', 'windows-2022']
 
     runs-on: ${{ matrix.os }}
+    # Guard against a wedged test hanging for the default 6h job timeout;
+    # build+test normally completes in well under 30 minutes.
+    timeout-minutes: 60
 
     steps:
     - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -93,10 +126,40 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
 
+    - name: Cache Conan packages
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        # On Linux, cibuildwheel builds inside a manylinux container. It
+        # mounts the whole host filesystem at /host, and CONAN_HOME is
+        # pointed there (see pyproject.toml) so this same host-side path is
+        # what's actually used and cached for every platform.
+        path: ~/.conan2
+        key: conan-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('conanfile.py') }}
+        restore-keys: |
+          conan-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-
+
     - name: Build wheels
       uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55 # v4.1.0
       with:
         extras: "uv"
+
+    - name: Fix Conan cache permissions
+      if: runner.os == 'Linux'
+      shell: bash
+      # Some Conan recipes (e.g. libiconv) ship test fixture files with no
+      # read permission on purpose, to exercise error handling, which
+      # otherwise makes the cache-save step's tar invocation fail with
+      # "Permission denied" and silently skip saving the cache. On the
+      # build-test-wheel job, cibuildwheel additionally runs Conan inside a
+      # root-owned manylinux container, so files under the host-mounted
+      # CONAN_HOME can end up owned by root instead of by this job's user,
+      # which chmod alone cannot fix ("Operation not permitted"). Runners
+      # have passwordless sudo, so reclaim ownership before fixing
+      # permissions; this is a no-op on build-test-cmake, where Conan
+      # already runs as this job's user.
+      run: |
+        sudo chown -R "$(id -u):$(id -g)" ~/.conan2
+        chmod -R u+rX ~/.conan2
 
     - name: Upload wheels
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
