@@ -97,6 +97,13 @@ jobs:
       uses: pypa/cibuildwheel@e090b81e30c4d855ea63bf4b6e59204c09a101ae # v4.2.1
       with:
         extras: "uv"
+      env:
+        CIBW_BEFORE_ALL_LINUX: >
+          yum install -y zlib-devel &&
+          echo '--- DNS ---' && getent ahosts sourceware.org ;
+          echo '--- v6 routes ---' && (ip -6 route || cat /proc/net/ipv6_route) ;
+          echo '--- IPv6 ---' && (curl -6 -sS -m 15 -o /dev/null -w '%{http_code}\n' https://sourceware.org/ || echo 'IPv6 FAIL') ;
+          echo '--- IPv4 ---' && (curl -4 -sS -m 15 -o /dev/null -w '%{http_code}\n' https://sourceware.org/ || echo 'IPv4 FAIL')
 
     - name: Upload wheels
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
